@@ -1,0 +1,23 @@
+.obsidian/
+node_modules/
+dist/
+build/
+.env
+*.log
+.DS_Store
+*.swp
+# Go build artifacts
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+# Dependency directories
+vendor/
+# IDE/editor folders
+.vscode/
+.idea/
+*.iml
+# OS generated files
+Thumbs.db 

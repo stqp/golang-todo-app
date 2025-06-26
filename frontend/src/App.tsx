@@ -9,6 +9,7 @@ import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import ProjectList from '@/pages/ProjectList';
 import ProjectDetail from '@/pages/ProjectDetail';
+import TaskList from '@/pages/TaskList';
 import TaskDetail from '@/pages/TaskDetail';
 import Layout from '@/components/Layout';
 
@@ -60,6 +61,16 @@ const App = () => {
                   <PrivateRoute>
                     <Layout>
                       <ProjectDetail />
+                    </Layout>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/tasks"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <TaskList />
                     </Layout>
                   </PrivateRoute>
                 }

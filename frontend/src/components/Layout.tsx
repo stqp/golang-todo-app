@@ -50,6 +50,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Projects
             </Box>
           </Link>
+          <Link to="/tasks">
+            <Box ml={8} fontWeight="medium">
+              Tasks
+            </Box>
+          </Link>
         </Flex>
 
         <Flex alignItems="center">
