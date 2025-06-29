@@ -51,8 +51,8 @@ const Login = () => {
   });
 
   return (
-    <Container maxW="container.sm" py={12}>
-      <Box
+    <Container maxW="container.sm" py={12} p={6} mt={8}>
+      <Box mt={8}
         p={8}
         borderWidth={1}
         borderRadius={8}

@@ -20,12 +20,19 @@ import {
   Textarea,
   Select,
   useToast,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import client from '@/api/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface Task {
   id: string;
@@ -63,6 +70,15 @@ const TaskList: React.FC = () => {
     },
   });
 
+  // ユーザー一覧を取得
+  const { data: users } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await client.get('/users');
+      return response.data;
+    },
+  });
+
   // タスク作成
   const createTaskMutation = useMutation({
     mutationFn: async (values: any) => {
@@ -81,6 +97,30 @@ const TaskList: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'タスクの作成に失敗しました',
+        description: error.response?.data?.error || 'エラーが発生しました',
+        status: 'error',
+        duration: 3000,
+      });
+    },
+  });
+
+  // タスク削除
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const response = await client.delete(`/tasks/${taskId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast({
+        title: 'タスクを削除しました',
+        status: 'success',
+        duration: 3000,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'タスクの削除に失敗しました',
         description: error.response?.data?.error || 'エラーが発生しました',
         status: 'error',
         duration: 3000,
@@ -160,49 +200,76 @@ const TaskList: React.FC = () => {
 
   return (
     <Box p={6}>
-      <HStack justify="space-between" mb={6}>
-        <Heading size="lg">タスク一覧</Heading>
-        <Button colorScheme="blue" onClick={onOpen}>
+      <HStack justify="space-between" mb={6} mt={8}>
+        <Heading size="lg" mt={2}>タスク一覧</Heading>
+        <Button colorScheme="blue" onClick={onOpen} mt={2}>
           タスクを作成
         </Button>
       </HStack>
 
-      <VStack spacing={4} align="stretch">
-        {tasks && tasks.length > 0 ? (
-          tasks.map((task) => (
-            <Box
-              key={task.id}
-              p={4}
-              borderWidth={1}
-              borderRadius="lg"
-              shadow="sm"
-              _hover={{ shadow: 'md' }}
-            >
-              <HStack justify="space-between" align="start">
-                <VStack align="start" spacing={2} flex={1}>
-                  <Heading size="md">{task.title}</Heading>
-                  <Text color="gray.600">{task.description}</Text>
-                  <HStack spacing={4}>
-                    <Text fontSize="sm" color="gray.500">
-                      期限: {formatDate(task.due_date)}
-                    </Text>
-                    <Badge colorScheme={getPriorityColor(task.priority)}>
-                      {task.priority}
-                    </Badge>
-                    <Badge colorScheme={getStatusColor(task.status)}>
-                      {task.status}
-                    </Badge>
-                  </HStack>
-                </VStack>
-              </HStack>
-            </Box>
-          ))
-        ) : (
-          <Box textAlign="center" py={8}>
-            <Text color="gray.500">タスクがありません</Text>
-          </Box>
-        )}
-      </VStack>
+      {/* テーブル表示 */}
+      <Box bg="white" borderRadius="lg" boxShadow="sm" overflowX="auto">
+        <Table variant="simple" width="100%" minWidth="900px" size="md">
+          <Thead bg="gray.100">
+            <Tr height="56px">
+              <Th textAlign="left" width="300px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>タイトル</Th>
+              <Th textAlign="left" width="300px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>説明</Th>
+              <Th textAlign="left" width="120px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>期限</Th>
+              <Th textAlign="left" width="110px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>優先度</Th>
+              <Th textAlign="left" width="110px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>ステータス</Th>
+              <Th textAlign="left" width="120px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>担当者</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {tasks && tasks.length > 0 ? (
+              tasks.map((task) => (
+                <Tr
+                  key={task.id}
+                  _hover={{ bg: 'gray.50', cursor: 'pointer' }}
+                  height="56px"
+                >
+                  <Td textAlign="left" width="300px" fontWeight="semibold" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {task.title}
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="300px" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {task.description}
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="120px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {formatDate(task.due_date)}
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="110px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      <Badge colorScheme={getPriorityColor(task.priority)} px={2} py={1} borderRadius="md" fontSize="sm">{task.priority}</Badge>
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="110px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      <Badge colorScheme={getStatusColor(task.status)} px={2} py={1} borderRadius="md" fontSize="sm">{task.status}</Badge>
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="120px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {users?.find((u) => u.id === task.assignee_id)?.name || '-'}
+                    </Link>
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr height="56px">
+                <Td colSpan={6} textAlign="center" color="gray.500" verticalAlign="middle" py={3}>
+                  タスクがありません
+                </Td>
+              </Tr>
+            )}
+          </Tbody>
+        </Table>
+      </Box>
 
       {/* タスク作成モーダル */}
       <Modal isOpen={isOpen} onClose={onClose}>

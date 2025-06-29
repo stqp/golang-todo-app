@@ -43,7 +43,7 @@ const Dashboard = () => {
   const taskStats = getTaskStats();
 
   return (
-    <Box>
+    <Box p={6} mt={8}>
       <Box mb={8}>
         <Heading size="lg">Welcome back, {user?.name}!</Heading>
         <Text mt={2} color="gray.600">

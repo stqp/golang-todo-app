@@ -2,7 +2,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role_id: number;
+  role_name: string;
   timezone: string;
   language: string;
   created_at: string;

@@ -1,12 +1,23 @@
 -- データベースの初期化スクリプト
 
+-- 拡張機能: uuid-ossp か pgcrypto を有効化（PostgreSQLでUUID生成用）
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 権限テーブルの作成
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ユーザーテーブルの作成
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'user',
+    role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL,
     timezone VARCHAR(100) DEFAULT 'UTC',
     language VARCHAR(10) DEFAULT 'en',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -78,30 +89,62 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 権限の初期データ
+INSERT INTO roles (name, description) VALUES 
+    ('admin', '管理者権限 - ユーザー管理が可能'),
+    ('user', '一般権限 - 基本的な機能のみ利用可能')
+ON CONFLICT (name) DO NOTHING;
+
 -- テスト用ユーザーの作成
-INSERT INTO users (id, name, email, password_hash, role, timezone, language) 
+INSERT INTO users (id, name, email, password_hash, role_id, timezone, language) 
 VALUES (
-    'test-user-1',
+    gen_random_uuid(),
     'Test User',
     'test@example.com',
     '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password: password
-    'user',
+    (SELECT id FROM roles WHERE name = 'user'),
     'Asia/Tokyo',
     'en'
-) ON CONFLICT (id) DO NOTHING;
+) ON CONFLICT (email) DO NOTHING;
+
+-- 管理者ユーザーの作成
+INSERT INTO users (id, name, email, password_hash, role_id, timezone, language) 
+VALUES (
+    gen_random_uuid(),
+    'Admin User',
+    'admin@example.com',
+    '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password: password
+    (SELECT id FROM roles WHERE name = 'admin'),
+    'Asia/Tokyo',
+    'en'
+) ON CONFLICT (email) DO NOTHING;
 
 -- テスト用プロジェクトの作成
 INSERT INTO projects (id, name, description, start_date, end_date, created_by)
 VALUES (
-    'test-project-1',
+    gen_random_uuid(),
     'Sample Project',
     'This is a sample project for testing',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP + INTERVAL '30 days',
-    'test-user-1'
-) ON CONFLICT (id) DO NOTHING;
+    (SELECT id FROM users WHERE email = 'test@example.com')
+) ON CONFLICT (name) DO NOTHING;
+
+-- テスト用タスクの作成
+INSERT INTO tasks (id, title, description, due_date, priority, status, project_id, assignee_id, created_by)
+VALUES (
+    gen_random_uuid(),
+    'Sample Task',
+    'This is a sample task for testing',
+    CURRENT_TIMESTAMP + INTERVAL '7 days',
+    'Medium',
+    'Open',
+    (SELECT id FROM projects WHERE name = 'Sample Project'),
+    (SELECT id FROM users WHERE email = 'test@example.com'),
+    (SELECT id FROM users WHERE email = 'test@example.com')
+) ON CONFLICT (title) DO NOTHING;
 
 -- プロジェクトメンバーの追加
 INSERT INTO project_members (project_id, user_id)
-VALUES ('test-project-1', 'test-user-1')
+VALUES ((SELECT id FROM projects WHERE name = 'Sample Project'), (SELECT id FROM users WHERE email = 'test@example.com'))
 ON CONFLICT (project_id, user_id) DO NOTHING; 

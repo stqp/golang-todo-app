@@ -13,7 +13,7 @@ import {
   Select,
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import client from '@/api/client';
@@ -29,6 +29,7 @@ const TaskDetail = () => {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: task } = useQuery<Task>({
     queryKey: ['task', taskId],
@@ -124,24 +125,53 @@ const TaskDetail = () => {
     }
   };
 
+  const deleteTaskMutation = useMutation<string, unknown, string>({
+    mutationFn: async (taskId: string) => {
+      const response = await client.delete(`/tasks/${taskId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast({
+        title: 'タスクを削除しました',
+        status: 'success',
+        duration: 3000,
+      });
+      navigate('/tasks');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'タスクの削除に失敗しました',
+        description: error.response?.data?.error || 'エラーが発生しました',
+        status: 'error',
+        duration: 3000,
+      });
+    },
+  });
+
   if (!task) {
     return <Text>Loading...</Text>;
   }
 
   return (
-    <Box>
-      <Box mb={6}>
-        <Heading size="lg">{task.title}</Heading>
-        <Text mt={2} color="gray.600">
-          {task.description}
-        </Text>
-        <HStack spacing={2} mt={4}>
-          <Badge colorScheme={getPriorityColor(task.priority)}>{task.priority}</Badge>
-          <Badge colorScheme={getStatusColor(task.status)}>{task.status}</Badge>
-        </HStack>
-        <Text mt={2} fontSize="sm" color="gray.500">
-          Due: {new Date(task.due_date).toLocaleDateString()}
-        </Text>
+    <Box p={6} mt={8}>
+      <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Heading size="lg">{task.title}</Heading>
+          <Text mt={2} color="gray.600">
+            {task.description}
+          </Text>
+          <HStack spacing={2} mt={4}>
+            <Badge colorScheme={getPriorityColor(task.priority)}>{task.priority}</Badge>
+            <Badge colorScheme={getStatusColor(task.status)}>{task.status}</Badge>
+          </HStack>
+          <Text mt={2} fontSize="sm" color="gray.500">
+            Due: {new Date(task.due_date).toLocaleDateString()}
+          </Text>
+        </Box>
+        <Button colorScheme="red" onClick={() => deleteTaskMutation.mutate(task.id)} isLoading={deleteTaskMutation.isPending}>
+          削除
+        </Button>
       </Box>
 
       <Box mb={6}>

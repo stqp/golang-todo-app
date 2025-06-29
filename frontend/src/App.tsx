@@ -2,6 +2,7 @@ import { ChakraProvider, CSSReset } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import theme from './theme';
 
 // Pages
 import Login from '@/pages/Login';
@@ -12,6 +13,8 @@ import ProjectDetail from '@/pages/ProjectDetail';
 import TaskList from '@/pages/TaskList';
 import TaskDetail from '@/pages/TaskDetail';
 import Layout from '@/components/Layout';
+import SearchResults from '@/pages/SearchResults';
+import UserManagement from '@/pages/UserManagement';
 
 const queryClient = new QueryClient();
 
@@ -27,7 +30,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const App = () => {
   return (
-    <ChakraProvider>
+    <ChakraProvider theme={theme}>
       <CSSReset />
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
@@ -81,6 +84,26 @@ const App = () => {
                   <PrivateRoute>
                     <Layout>
                       <TaskDetail />
+                    </Layout>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/search-results"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <SearchResults />
+                    </Layout>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/user-management"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <UserManagement />
                     </Layout>
                   </PrivateRoute>
                 }

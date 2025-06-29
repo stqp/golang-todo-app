@@ -15,6 +15,8 @@ import (
     "todo-app/internal/common/logger"
     authMiddleware "todo-app/internal/common/middleware"
     "todo-app/internal/infrastructure/db"
+    searchHandler "todo-app/internal/infrastructure"
+    "github.com/go-chi/cors"
 )
 
 func main() {
@@ -32,15 +34,26 @@ func main() {
 
     // Initialize router
     r := chi.NewRouter()
+    
+    // ミドルウェアを先に定義
     r.Use(chiMiddleware.Logger)
-    r.Use(authMiddleware.JWTMiddleware)
+    r.Use(cors.Handler(cors.Options{
+        AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:5175"},
+        AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+        AllowCredentials: true,
+    }))
 
-    // Register routes
-    userHandler.RegisterUserRoutes(r, dbConn)
-    projectHandler.RegisterProjectRoutes(r, dbConn)
-    taskHandler.RegisterTaskRoutes(r, dbConn)
-    commentHandler.RegisterCommentRoutes(r, dbConn)
-    notificationHandler.RegisterNotificationRoutes(r, dbConn)
+    // 認証必須のルート
+    r.Group(func(private chi.Router) {
+        private.Use(authMiddleware.JWTMiddleware)
+        searchHandler.RegisterSearchRoutes(private)
+        userHandler.RegisterUserRoutes(private, dbConn)
+        projectHandler.RegisterProjectRoutes(private, dbConn)
+        taskHandler.RegisterTaskRoutes(private, dbConn)
+        commentHandler.RegisterCommentRoutes(private, dbConn)
+        notificationHandler.RegisterNotificationRoutes(private, dbConn)
+    })
 
     zapLogger.Info("Listening on :8080")
     http.ListenAndServe(":8080", r)

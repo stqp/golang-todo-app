@@ -21,9 +21,15 @@ import {
   Select,
   Badge,
   HStack,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import client from '@/api/client';
@@ -44,6 +50,7 @@ const ProjectDetail = () => {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: project } = useQuery<Project>({
     queryKey: ['project', projectId],
@@ -58,6 +65,14 @@ const ProjectDetail = () => {
   const { data: members } = useQuery<User[]>({
     queryKey: ['members', projectId],
     queryFn: () => client.get(`/projects/${projectId}/members`).then((res) => res.data),
+  });
+
+  const { data: users } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await client.get('/users');
+      return response.data;
+    },
   });
 
   const createTask = useMutation({
@@ -77,6 +92,30 @@ const ProjectDetail = () => {
       toast({
         title: 'Error',
         description: 'Failed to create task',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+  });
+
+  const deleteProject = useMutation({
+    mutationFn: (projectId: string) =>
+      client.delete(`/projects/${projectId}`).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast({
+        title: 'Project deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate('/projects');
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete project',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -133,16 +172,21 @@ const ProjectDetail = () => {
   }
 
   return (
-    <Box>
-      <Box mb={6}>
-        <Heading size="lg">{project.name}</Heading>
-        <Text mt={2} color="gray.600">
-          {project.description}
-        </Text>
-        <Text mt={2} fontSize="sm" color="gray.500">
-          {new Date(project.start_date).toLocaleDateString()} -{' '}
-          {new Date(project.end_date).toLocaleDateString()}
-        </Text>
+    <Box p={6} mt={8}>
+      <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Heading size="lg">{project.name}</Heading>
+          <Text mt={2} color="gray.600">
+            {project.description}
+          </Text>
+          <Text mt={2} fontSize="sm" color="gray.500">
+            {new Date(project.start_date).toLocaleDateString()} -{' '}
+            {new Date(project.end_date).toLocaleDateString()}
+          </Text>
+        </Box>
+        <Button colorScheme="red" onClick={() => deleteProject.mutate(project.id)} isLoading={deleteProject.isPending}>
+          削除
+        </Button>
       </Box>
 
       <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
@@ -152,36 +196,68 @@ const ProjectDetail = () => {
         </Button>
       </Box>
 
-      <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
-        {tasks?.map((task) => (
-          <Link key={task.id} to={`/tasks/${task.id}`}>
-            <Box
-              p={6}
-              borderWidth={1}
-              borderRadius="lg"
-              _hover={{ shadow: 'md', borderColor: 'blue.500' }}
-            >
-              <Heading size="sm" mb={2}>
-                {task.title}
-              </Heading>
-              <Text noOfLines={2} mb={4} color="gray.600">
-                {task.description}
-              </Text>
-              <HStack spacing={2} mb={2}>
-                <Badge colorScheme={getPriorityColor(task.priority)}>
-                  {task.priority}
-                </Badge>
-                <Badge colorScheme={getStatusColor(task.status)}>
-                  {task.status}
-                </Badge>
-              </HStack>
-              <Text fontSize="sm" color="gray.500">
-                Due: {new Date(task.due_date).toLocaleDateString()}
-              </Text>
-            </Box>
-          </Link>
-        ))}
-      </Grid>
+      <Box bg="white" borderRadius="lg" boxShadow="sm" overflowX="auto" mb={8}>
+        <Table variant="simple" width="100%" minWidth="900px" size="md">
+          <Thead bg="gray.100">
+            <Tr height="56px">
+              <Th textAlign="left" width="300px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>タイトル</Th>
+              <Th textAlign="left" width="300px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>説明</Th>
+              <Th textAlign="left" width="120px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>期限</Th>
+              <Th textAlign="left" width="110px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>優先度</Th>
+              <Th textAlign="left" width="110px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>ステータス</Th>
+              <Th textAlign="left" width="120px" fontSize="md" fontWeight="bold" verticalAlign="middle" py={3}>担当者</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {tasks && tasks.length > 0 ? (
+              tasks.map((task) => (
+                <Tr
+                  key={task.id}
+                  _hover={{ bg: 'gray.50', cursor: 'pointer' }}
+                  height="56px"
+                >
+                  <Td textAlign="left" width="300px" fontWeight="semibold" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {task.title}
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="300px" whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {task.description}
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="120px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {new Date(task.due_date).toLocaleDateString('ja-JP')}
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="110px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      <Badge colorScheme={getPriorityColor(task.priority)} px={2} py={1} borderRadius="md" fontSize="sm">{task.priority}</Badge>
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="110px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      <Badge colorScheme={getStatusColor(task.status)} px={2} py={1} borderRadius="md" fontSize="sm">{task.status}</Badge>
+                    </Link>
+                  </Td>
+                  <Td textAlign="left" width="120px" verticalAlign="middle" py={3}>
+                    <Link to={`/tasks/${task.id}`} style={{ display: 'block', width: '100%', height: '100%', color: 'inherit', textDecoration: 'none' }}>
+                      {users?.find((u) => u.id === task.assignee_id)?.name || '-'}
+                    </Link>
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr height="56px">
+                <Td colSpan={6} textAlign="center" color="gray.500" verticalAlign="middle" py={3}>
+                  タスクがありません
+                </Td>
+              </Tr>
+            )}
+          </Tbody>
+        </Table>
+      </Box>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />

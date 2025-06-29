@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Whenever a file in the requirement/ folder is modified or a code-change request is issued from the terminal, finish the code fix first and then always verify whether the corresponding design document in the spec/ folder needs to be updated.
+If an update is required, apply it.
+If the design document should exist but does not yet, create a new file in spec/ and then update it accordingly.
+
+The files inside the requirement/ folder contain business and functional requirements. Whenever those files change, review all test code to ensure that scenarios and use-cases still satisfy the updated requirements, and revise the tests if necessary.
+
+After every code modification, run the test suite.
+
+If any test fails, continue fixing the code until all tests pass.

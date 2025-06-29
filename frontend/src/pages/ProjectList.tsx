@@ -67,6 +67,29 @@ const ProjectList = () => {
     },
   });
 
+  const deleteProject = useMutation({
+    mutationFn: (projectId: string) =>
+      client.delete(`/projects/${projectId}`).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast({
+        title: 'Project deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete project',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+  });
+
   const formik = useFormik({
     initialValues: {
       name: '',
@@ -87,7 +110,7 @@ const ProjectList = () => {
   }
 
   return (
-    <Box>
+    <Box p={6} mt={8}>
       <Box mb={6} display="flex" justifyContent="space-between" alignItems="center">
         <Heading size="lg">Projects</Heading>
         <Button colorScheme="blue" onClick={onOpen}>
@@ -97,13 +120,15 @@ const ProjectList = () => {
 
       <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
         {projects?.map((project) => (
-          <Link key={project.id} to={`/projects/${project.id}`}>
-            <Box
-              p={6}
-              borderWidth={1}
-              borderRadius="lg"
-              _hover={{ shadow: 'md', borderColor: 'blue.500' }}
-            >
+          <Box
+            key={project.id}
+            p={6}
+            borderWidth={1}
+            borderRadius="lg"
+            _hover={{ shadow: 'md', borderColor: 'blue.500' }}
+            position="relative"
+          >
+            <Link to={`/projects/${project.id}`}>
               <Heading size="md" mb={2}>
                 {project.name}
               </Heading>
@@ -114,8 +139,8 @@ const ProjectList = () => {
                 {new Date(project.start_date).toLocaleDateString()} -{' '}
                 {new Date(project.end_date).toLocaleDateString()}
               </Text>
-            </Box>
-          </Link>
+            </Link>
+          </Box>
         ))}
       </Grid>
 

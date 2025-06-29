@@ -66,8 +66,8 @@ const Register = () => {
   });
 
   return (
-    <Container maxW="container.sm" py={12}>
-      <Box p={8} borderWidth={1} borderRadius={8} boxShadow="lg">
+    <Container maxW="container.sm" py={12} p={6} mt={8}>
+      <Box p={8} borderWidth={1} borderRadius={8} boxShadow="lg" mt={8}>
         <Stack spacing={4}>
           <Heading size="lg" textAlign="center">
             Create Account
